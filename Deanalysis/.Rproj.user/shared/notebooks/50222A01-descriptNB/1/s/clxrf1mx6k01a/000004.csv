@@ -1,0 +1,8 @@
+"0","test_that(""classTypeResultsNames"", {
+  expect_equal(class(resultsNames(dds)), ""character"")
+  })
+"
+"1","[32mTest passed[39m "
+"1",""
+"1","
+"

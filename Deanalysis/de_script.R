@@ -8,6 +8,9 @@ library(RColorBrewer)
 library(DESeq2)
 library(pheatmap)
 library(DEGreport)
+library(ggplot2)
+library(ggrepel)
+library(testthat)
 
 ## Load in data
 data <- read.table("data/Mov10_full_counts.txt", header=T, row.names=1) 
@@ -135,6 +138,10 @@ resultsNames(dds)
 ## Plot dispersion estimates
 plotDispEsts(dds)
 
+
+# -----------------------------------
+
+
 # We will now perform our hypothesis testing using a Walfowitz test. We need to first define the contrasts, or the variables we will be contrasting in our hypothesis test. 
 
 # Define contrasts, extract results table, and shrink the log2 fold changes
@@ -144,7 +151,9 @@ contrast_oe <- c("sampletype", "MOV10_overexpression", "control")
 res_tableOE_unshrunken <- results(dds, contrast=contrast_oe, alpha = 0.05)
 
 ####### Consult with Dr. Lopes about "type" of lfcShrink to use. Default not working #######
-res_tableOE <- lfcShrink(dds, contrast=contrast_oe, res=res_tableOE_unshrunken, type="ashr")
+# res_tableOE <- lfcShrink(dds, contrast=contrast_oe, res=res_tableOE_unshrunken, type="ashr")
+
+res_tableOE <- lfcShrink(dds, coef = 3)
 
 
 # Let's generate an MA Plot, which will display the means of the normalized genes vs. the log2 foldchanges for MOV10_OE vs. the control group
@@ -172,9 +181,11 @@ res_tableOE
 ## Define contrasts, extract results table and shrink log2 fold changes
 contrast_kd <-  c("sampletype", "MOV10_knockdown", "control")
 
-res_tableKD_unshrunken <- results(dds, contrast=contrast_kd, alpha = 0.05)
+# res_tableKD_unshrunken <- results(dds, contrast=contrast_kd, alpha = 0.05)
 
-res_tableKD <- lfcShrink(dds, contrast=contrast_kd, res=res_tableKD_unshrunken, type="ashr")
+# res_tableKD_ashr <- lfcShrink(dds, contrast=contrast_kd, res=res_tableKD_unshrunken, type="ashr")
+
+res_tableOE_KD <- lfcShrink(dds, coef = 2)
 
 # Let's generate an MA Plot, which will display the means of the normalized genes vs. the log2 foldchanges for MOV10_OE vs. the control group
 plotMA(res_tableKD_unshrunken, ylim=c(-2,2))
@@ -186,7 +197,8 @@ class(res_tableKD)
 
 mcols(res_tableKD, use.names=TRUE)
 
-res_tableKD
+res_tableKD_ashr
+res_tableOE_KD
 
 
 # Let's extract DE genes for overexpression 
@@ -199,7 +211,7 @@ summary(res_tableKD)
 padj.cutoff <- 0.05
 lfc.cutoff <- 0.58
 
-
+# Create a tibble from our res_tableOE
 res_tableOE_tb <- res_tableOE %>%
   data.frame() %>%
   rownames_to_column(var="gene") %>% 
@@ -214,7 +226,7 @@ sigOE
 
 # ------------------------------------------------ #
 
-# Let's extract DE genes for overexpression 
+# Let's extract DE genes for knockdown 
 
 res_tableKD_tb <- res_tableKD %>%
   data.frame() %>%
@@ -227,7 +239,72 @@ sigKD <- res_tableKD_tb %>%
 
 sigKD
 
+# ----------------------------
 # TODO: Visualizing results 
+# ----------------------------
+
+# Create tibbles including row names from meta and normalized_counts objects created earlier 
+mov10_meta <- meta %>% 
+  rownames_to_column(var="samplename") %>% 
+  as_tibble()
+
+normalized_counts <- normalized_counts %>% 
+  data.frame() %>%
+  rownames_to_column(var="gene") %>% 
+  as_tibble()
+
+# Plot expression for single gene
+plotCounts(dds, gene="MOV10", intgroup="sampletype") 
+
+# Save plotcounts to a data frame object
+d <- plotCounts(dds, gene="MOV10", intgroup="sampletype", returnData=TRUE)
+
+# Plotting the MOV10 normalized counts, using the samplenames (rownames of d as labels)
+ggplot(d, aes(x = sampletype, y = count, color = sampletype)) + 
+  geom_point(position=position_jitter(w = 0.1,h = 0)) +
+  geom_text_repel(aes(label = rownames(d))) + 
+  theme_bw() +
+  ggtitle("MOV10") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# --------------------------------------
+# Let's next plot the top 20 DE genes 
+# --------------------------------------
+
+## Order results by padj values
+top20_sigOE_genes <- res_tableOE_tb %>% 
+  arrange(padj) %>% 	#Arrange rows by padj values
+  pull(gene) %>% 		#Extract character vector of ordered genes
+  head(n=20) 		#Extract the first 20 genes
+
+## normalized counts for top 20 significant genes
+top20_sigOE_norm <- normalized_counts %>%
+  filter(gene %in% top20_sigOE_genes)
+
+# Gathering the columns to have normalized counts to a single column
+gathered_top20_sigOE <- top20_sigOE_norm %>%
+  gather(colnames(top20_sigOE_norm)[2:9], key = "samplename", value = "normalized_counts")
+
+## check the column header in the "gathered" data frame
+View(gathered_top20_sigOE)
+
+gathered_top20_sigOE <- inner_join(mov10_meta, gathered_top20_sigOE)
+
+
+# Let's plot now!
+## plot using ggplot2
+ggplot(gathered_top20_sigOE) +
+  geom_point(aes(x = gene, y = normalized_counts, color = sampletype)) +
+  scale_y_log10() +
+  xlab("Genes") +
+  ylab("log10 Normalized Counts") +
+  ggtitle("Top 20 Significant DE Genes") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+
 
 
 
