@@ -9,7 +9,7 @@ To run the project, simply run each R chunk. The final output is a formatted tab
 
 The project directory also includes a formal scientific report. 
 
-# Instructions to access the report: 
+## Instructions to access the report: 
 From the home directory, navigate into the "results" folder. The PDF report will be located there. 
 
 NOTE: IT IS IMPORTANT TO DOWNLOAD AND INSTALL ALL OF THE PACKAGES LISTED IN THE FIRST R CHUNK IN ORDER FOR THE PROGRAM TO RUN PROPERLY. The packages DESeq2 and DEGreport must be installed by the BiocManager, the package manager for Bioconductor packages. As such, THE FOLLOWING LINES OF CODE MAY PROVE HELPFUL IN INSTALLING THE BIOCONDUCTOR AND BIOCMANAGER PACKAGES: 
