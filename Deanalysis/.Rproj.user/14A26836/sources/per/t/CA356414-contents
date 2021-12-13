@@ -1,0 +1,254 @@
+---
+title: "Differential expression analysis of MOV10 Gene Perturbation on HEK293F mice cells"
+author: "Joshua Barrs"
+date: "12/8/2021"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+output_dir: ../results
+bibliography: ../bin/BiblaTexBibliography.bib
+csl: ../bin/journal-of-the-royal-society-interface.csl
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r echo=FALSE, message=FALSE, results='hide'}
+# Run the following: 
+library(tidyverse)
+library(RColorBrewer)
+library(DESeq2)
+library(pheatmap)
+library(DEGreport)
+library(ggplot2)
+library(ggrepel)
+library(apeglm) # needed when computing the log-shrinkage in R code chunk beginning at line 94
+library(testthat) # Required library for unit tests performed below 
+
+```
+## Abstract 
+
+In this project, RNA sequencing of mouse HEK293F cells are performed in order to conduct differential expression (DE) analysis to determine the impact that MOV10 gene perturbation (changing MOV10 expression levels within the cell) has on expression levels of other genes. By investigating this relationship, a conclusion can be made with respect to which processes are affected/correlated with MOV10 expression. MOV10 is an RNA helicase protein. It facilitates microRNA-mediated translation of certain RNAs in the brain and increases expression of other RNAs by blocking the completion of AGO2 function [@kenny_zhou_kim_skariah_khetani_drnevich_arcila_kosik_ceman:2014]. The data presented in this project is taken from the study by [@kenny_zhou_kim_skariah_khetani_drnevich_arcila_kosik_ceman:2014], in which the authors investigate how MOV10 and FMRP, Fragile X Syndrome Mental Retardation Protein, associate with and regulate the translation of a certain subset of RNAs. The RNA sequencing analysis code presented in this project was compiled following the RNA Sequencing tutorial created by [@mistry_khetani_piper_2017]. The project topic was selected for multiple reasons. Biological systems are very robust and complex in nature; even today, biological processes and their interaction with each other are not always fully understood. Differential expression analysis serves as a valuable tool and method of learning which processes are influenced or affected by others; as such, it can be used in numerous environments in order to discern correlated biological occurrences. 
+
+#### Author's Note
+
+I would like to credit the DGE workshop tutorial found at [@mistry_khetani_piper_2017], as this project was constructed following their tutorial made publicly available to the academic community 
+
+## Materials and Methods 
+
+### Data Set 
+
+For the purpose of this project, the data used in the DE analysis is taken from the study published by [@mistry_khetani_piper_2017]. The dataset includes a count matrix of RNA-sequenced genes taken from mice cells. In the study by [@kenny_zhou_kim_skariah_khetani_drnevich_arcila_kosik_ceman:2014], HEK293F mice cells were taken and subsequently transfected with either a MOV10 transgene in order to promote MOV10 overexpression, siRNA (short-interfering RNA) to knockdown MOV10 expression levels, or an irrelevant knockdown (KD) protein to keep MOV10 at its regular expression levels. For the purposes of this project, the cells treated with the irrelevant KD protein are treated as the control group [@mistry_khetani_piper_2017]. There were two replicate (sample) groups for the cells treated with knockdown siRNA, three replicates (sample groups) for the cells treated with the MOV10 transgene (overexpression), and three replicates for the cells treated with irrelevant knockdown. The first part of the data analyzed is presented below. Namely, it consists of the sequence read counts of each gene that were subjected to the three treatments described above. Higher number of sequence counts indicate higher levels of expression of that gene within the replicate. 
+
+```{r echo = FALSE, message = FALSE}
+
+data <- read.table("../data/Mov10_full_counts.txt", header=T, row.names=1) 
+
+meta <- read.table("../meta/Mov10_full_meta.txt", header=T, row.names=1)
+
+head(data)
+
+```
+
+### Count Normalization 
+
+Differential expression analysis was then conducted by a series of steps, most of which included methods provided by the DESeq2 package, which is part of the Bioconductor Bioinformatics package network. Once the RNA sequencing data was loaded in (above), differential expression analysis of the RNA-sequenced data could begin. In R, a DESeq2 data object is created from our RNA-sequenced data. We then obtain the mapped read counts for each gene and then normalize these mapped read counts in order to eliminate extraneous related factors. After the normalization, the mapped read counts of the gene will be directly proportional to the RNA expression levels. Presented below is the first part of a table of the normalized counts of each gene. 
+
+```{r echo = FALSE, message = FALSE}
+# Let us now create our DeSeq2 Dataset object so we can run Prinicipal Component Analysis (PCA Analysis) later below
+
+## Create DESeq2Dataset object
+dds <- DESeqDataSetFromMatrix(countData = data, colData = meta, design = ~ sampletype)
+
+
+# Now that we have created our DESeq2Dataset object, let us normalize the count values by calling the estimateSizeFactors function (see below)
+dds <- estimateSizeFactors(dds)
+
+# Let's make sure that the normalized factors are in our data frame 
+sizeFactors(dds)
+
+# Let us compute the normalized RNA sequence counts 
+normalized_counts <- counts(dds, normalized=TRUE)
+
+head(normalized_counts) # output the normalized counts
+```
+
+### Principal Component Analysis (PCA) of Normalized Count Data 
+
+After read count normalization, principal component analysis (PCA) of our normalized read counts were performed in order to identify factors/variables that account for the variation in our sequenced data. The PCA plot is presented below: 
+
+```{r echo = FALSE, message=FALSE}
+
+#rlog() function will transform the normalized counts 
+
+rld <- rlog(dds, blind=TRUE)
+
+# Now that we have moderated the variance, let us run the PCA on our normalized RNA sequence counts
+
+plotPCA(rld, intgroup="sampletype")
+
+```
+
+As we can see from the graph, the replicate (sample) groups are indeed organized according to their treatment effects, indicating that the treatment effect (overexpression, knockdown, or irrelevant siRNA) serves as a key factor for variability within the data set. With this conclusion, we can further conclude that the genes that differ in their expression levels do so according to which treatment they were subjected[@mistry_khetani_piper_2017].
+
+
+### DE Analysis using built-in DESeq function 
+
+After verifying our data in PCA, differential expression analysis is conducted using the DESeq() function, available from the DESeq2 package downloaded earlier in the project. The DESeq() function performs all steps of the Differential Expression Analysis, including dispersion estimation, gene-wise dispersion estimation, model fitting and model testing. The function then outputs a DESeq data object, which contains the genes in study in addition to several attributes of the genes, including log2 shrinkage estimates. 
+
+```{r echo = FALSE, message = FALSE}
+## Run analysis
+dds <- DESeq(dds)
+
+results(dds)
+```
+
+### Log2 Fold Change (LFC) Shrinkage 
+
+After obtaining our DE result, we perform log 2 fold change shrinkage on our genes of interest. The main purpose of log 2 fold change shrinkage is to generate more accurate estimates of our log 2 fold change (LFC) values. In essence, genes with either low count values or high dispersion values have their LFC estimates shrunken toward 0. This way, the log 2 fold change estimates of genes with low counts or high dispersion will have more likely/lower LFC estimates [@mistry_khetani_piper_2017].
+
+We also conduct a Wald-Walfowitz test for statistical analysis with the function call below. In essence, we create a null hypothesis (in our case, the null hypothesis, or H0, is that there is no differential expression between genes from our two treatment groups) and then perform the test, which will output a p-value, indicating the likelihood of obtaining an output value as extreme as the observed value in our data set. Two separate lfcShrink() function calls are made below: one for each Walfowitz test. 
+
+Test 1: We are contrasting MOV10 Overexpression (MOV10_OE) against the control group (genes treated with irrelevant siRNA in the experiment which remain unaffected with respect to MOV10 expression)
+
+Test2: We are contrasting MOV10 gene knockdown (MOV10_KD) against the control group (genes treated with irrelevant siRNA which remain unaffected with respect to MOV10 expression)
+
+What is outputted is a DESeqResults object (very similar to a dataframe) that contains the log2 shrinkage estimates in addition to the Walfowtiz test output (including p-values for each gene).
+
+Results table for overexpression: 
+```{r echo = FALSE, message = FALSE}
+# Let us now perform log2 shrinking (LFC)
+res_tableOE <- lfcShrink(dds, coef = 3)
+head(res_tableOE)
+```
+
+Results table for knockdown: 
+```{r echo = FALSE, message = FALSE}
+# Let's perform a Wald test and DE analysis for the MOV10_KD (knockdown) vs. the control group 
+
+# LFC Shrinking for the KnockDown genes
+res_tableKD <- lfcShrink(dds, coef = 2)
+head(res_tableKD)
+```
+
+
+### Extracting Significant DE Genes
+
+Once the DESeqresults object has been outputted, we begin the work of extracting out the signficant DE genes. For the purposes of the project, "significant" with respect to the genes indicates that the gene had a significant p-value of < 0.05, allowing us to reject the null hypothesis (H0) and conclude that the genes from the two treatment groups in the Walfowtiz test are indeed differentially expressed. Because our DESeqresults object (res_tableOE and res_tableKD) contain all of the genes from the test (even the non-significant ones), we must manually parse out only the genes that are significant in order to determine which are differentially expressed (DE). We do these steps in R, and presented below are tables containing the extracted significant differentially expressed genes for overexpression and knockdown treatments: 
+
+
+Table of significant differentially overexpressed genes and their attributes: 
+
+```{r echo = FALSE, message = FALSE}
+### Set thresholds
+padj.cutoff <- 0.05
+lfc.cutoff <- 0.58
+
+# Create a tibble from our res_tableOE
+res_tableOE_tb <- res_tableOE %>%
+  data.frame() %>%
+  rownames_to_column(var="gene") %>% 
+  as_tibble()
+
+
+sigOE <- res_tableOE_tb %>%
+  filter(padj < padj.cutoff & abs(log2FoldChange) > lfc.cutoff)
+
+sigOE
+```
+
+
+Table of significant differentially expressed knockdown genes and their attributes:
+
+```{r echo = FALSE, message = FALSE}
+
+res_tableKD_tb <- res_tableKD %>%
+  data.frame() %>%
+  rownames_to_column(var="gene") %>% 
+  as_tibble()
+
+sigKD <- res_tableKD_tb %>%
+  filter(padj < padj.cutoff & abs(log2FoldChange) > lfc.cutoff)
+
+sigKD
+
+```
+
+In essence, I create a p-value cutoff value of 0.05 and a log2 fold change cutoff of 0.58. Thus, only the genes from my DESeqresults objects with p-values less than padj.cutoff (0.05) and greater than lfc.cutoff (0.58) will be extracted into a separate data frame for further analysis and visualization. 
+
+
+## Results and Discussion 
+
+### Differentially Expressed Gene Counts Plots
+
+As the purpose of this project is DE analysis, the primary output/results of the data processing involve a series of plots that visually demonstrate the specific genes that were differentially expressed as a result of MOV10 gene perturbation in the mice cells. By investigating the following plots, we are able to determine the specific genes differentially expressed in addition to the degree with which they are differentially expressed. In the plot below, we plot the top 20 differentially expressed genes in our dataset; however, we can easily adapt the figure to include the top 30 DE genes or to include a random number of genes we wish included in the plot. 
+
+In the first plot, we simply plot the expression levels of only the MOV10 gene with respect to which treatment the MOV10 gene was subjected. 
+
+In the last plot, we visualize the top 20 differentially expressed genes and their log10 normalized read counts, grouped according to their treatment effects. We are then able to conclude that these DE genes' expression levels are a byproduct of MOV10 gene perturbation within the cells, indicating a correlation between MOV10 expression levels and expression levels of these genes seen in the plot. 
+
+```{r echo = FALSE, message = FALSE}
+# Create tibbles including row names from meta and normalized_counts objects created earlier 
+mov10_meta <- meta %>% 
+  rownames_to_column(var="samplename") %>% 
+  as_tibble()
+
+normalized_counts <- normalized_counts %>% 
+  data.frame() %>%
+  rownames_to_column(var="gene") %>% 
+  as_tibble()
+
+# Plot expression for single gene
+plotCounts(dds, gene="MOV10", intgroup="sampletype") 
+
+# Save plotcounts to a data frame object
+d <- plotCounts(dds, gene="MOV10", intgroup="sampletype", returnData=TRUE)
+
+# Plotting the MOV10 normalized counts, using the samplenames (rownames of d as labels)
+ggplot(d, aes(x = sampletype, y = count, color = sampletype)) + 
+  geom_point(position=position_jitter(w = 0.1,h = 0)) +
+  geom_text_repel(aes(label = rownames(d))) + 
+  theme_bw() +
+  ggtitle("MOV10") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+
+## Order results by padj values
+top20_sigOE_genes <- res_tableOE_tb %>% 
+  arrange(padj) %>% 	#Arrange rows by padj values
+  pull(gene) %>% 		#Extract character vector of ordered genes
+  head(n=20) 		#Extract the first 20 genes
+
+## normalized counts for top 20 significant genes
+top20_sigOE_norm <- normalized_counts %>%
+  filter(gene %in% top20_sigOE_genes)
+
+# Gathering the columns to have normalized counts to a single column
+gathered_top20_sigOE <- top20_sigOE_norm %>%
+  gather(colnames(top20_sigOE_norm)[2:9], key = "samplename", value = "normalized_counts")
+
+## check the column header in the "gathered" data frame
+View(gathered_top20_sigOE)
+
+gathered_top20_sigOE <- inner_join(mov10_meta, gathered_top20_sigOE)
+
+# Let's plot now!
+## plot using ggplot2
+ggplot(gathered_top20_sigOE) +
+  geom_point(aes(x = gene, y = normalized_counts, color = sampletype)) +
+  scale_y_log10() +
+  xlab("Genes") +
+  ylab("log10 Normalized Counts") +
+  ggtitle("Top 20 Significant DE Genes") +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(plot.title = element_text(hjust = 0.5))
+
+```
+
+
+## References 
