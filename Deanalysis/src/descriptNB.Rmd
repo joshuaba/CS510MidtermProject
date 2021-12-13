@@ -7,6 +7,11 @@ output: html_notebook
 ```{r}
 ## Setup
 ### Bioconductor and CRAN libraries used
+
+# Below, I am sourcing the install_script.R to help out the user install the required BiocManager package manager and the required Bioconductor packages (including DESeq2 and DEGreport)
+# source("install_script.R", local = knitr::knit_global())
+
+# Run the following: 
 library(tidyverse)
 library(RColorBrewer)
 library(DESeq2)
@@ -14,6 +19,7 @@ library(pheatmap)
 library(DEGreport)
 library(ggplot2)
 library(ggrepel)
+library(apeglm) # needed when computing the log-shrinkage in R code chunk beginning at line 94
 library(testthat) # Required library for unit tests performed below 
 ```
 
@@ -30,8 +36,8 @@ test_that("classType", {
 })
 
 # Viewing the data to double-check before performing analysis 
-View(meta)
-View(data)
+# View(meta)
+# View(data)
 ```
 
 

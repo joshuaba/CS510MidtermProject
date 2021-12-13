@@ -5,6 +5,10 @@ This program contains the research I am currently conducting with Dr. Patricia L
 
 To run the project, simply run each R chunk. The final output is a formatted table of the top 20 DE genes and some plots. 
 
-NOTE: IT IS IMPORTANT TO DOWNLOAD AND INSTALL ALL OF THE PACKAGES LISTED IN THE FIRST R CHUNK IN ORDER FOR THE PROGRAM TO RUN PROPERLY. FOR Mac USERS, THE FOLLOWING LINE OF CODE MAY PROVE HELPFUL IN INSTALLING THE BIOCONDUCTOR AND BIOCMANAGER PACKAGES: 
+NOTE: IT IS IMPORTANT TO DOWNLOAD AND INSTALL ALL OF THE PACKAGES LISTED IN THE FIRST R CHUNK IN ORDER FOR THE PROGRAM TO RUN PROPERLY. The packages DESeq2 and DEGreport must be installed by the BiocManager, the package manager for Bioconductor packages. As such, THE FOLLOWING LINE OF CODE MAY PROVE HELPFUL IN INSTALLING THE BIOCONDUCTOR AND BIOCMANAGER PACKAGES: 
 
- > if (!requireNamespace("BiocManager", quietly = TRUE)) install.packages("BiocManager") BiocManager::install("DESeq2") BiocManager::install("DEGreport") 
+ > if (!requireNamespace("BiocManager", quietly = TRUE)) 
+ >    install.packages("BiocManager") 
+ > BiocManager::install("DESeq2")
+ > BiocManager::install("DEGreport")
+ > BiocManager::install("apeglm") # Required for computing the log2-shrinkage in one of the R chunks 

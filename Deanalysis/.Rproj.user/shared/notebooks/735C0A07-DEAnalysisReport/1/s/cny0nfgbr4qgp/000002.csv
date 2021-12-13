@@ -1,0 +1,4 @@
+"0","## Create DESeq2Dataset object
+dds <- DESeqDataSetFromMatrix(countData = data, colData = meta, design = ~ sampletype)
+"
+"2","some variables in design formula are characters, converting to factors"
