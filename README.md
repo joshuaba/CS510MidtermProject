@@ -12,9 +12,12 @@ The project directory also includes a formal scientific report located in the "r
 NOTE: IT IS IMPORTANT TO DOWNLOAD AND INSTALL ALL OF THE PACKAGES LISTED IN THE FIRST R CHUNK IN ORDER FOR THE PROGRAM TO RUN PROPERLY. The packages DESeq2 and DEGreport must be installed by the BiocManager, the package manager for Bioconductor packages. As such, THE FOLLOWING LINES OF CODE MAY PROVE HELPFUL IN INSTALLING THE BIOCONDUCTOR AND BIOCMANAGER PACKAGES: 
 
  > if (!requireNamespace("BiocManager", quietly = TRUE)) 
- >    install.packages("BiocManager")^@ 
- > BiocManager::install("DESeq2")^@
- > BiocManager::install("DEGreport")^@
+ >    install.packages("BiocManager")
+
+ > BiocManager::install("DESeq2")
+
+ > BiocManager::install("DEGreport")
+
  > BiocManager::install("apeglm") # Required for computing the log2-shrinkage in one of the R chunks
 
  Alternatively, uncomment the line 
