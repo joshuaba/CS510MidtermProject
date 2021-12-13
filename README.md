@@ -5,7 +5,7 @@ This program is related to the research I am currently conducting with Dr. Patri
 
 The goal of this project is to conduct differential expression (DE) analysis on HEK293F mice cells that were subjected to different treatments in order to promote MOV10 gene expression, supress MOV10 gene expression, or maintain regular MOV10 gene expression levels (the control group). Through the DE analysis, the goal is to identify those genes whose expression levels change as a result of the MOV10 gene perturbation (or expression level change). We can then conclude that there is a correlation between MOV10 expression levels and expression levels of these subsequent genes. 
 
-To run the project, simply run each R chunk. The final output is a formatted table of the top 20 DE genes and some plots, in addition to plots to visualize the results. 
+To run the project, simply run each R chunk. The final output is a formatted table of the top 20 DE genes in addition to plots to visualize the results. 
 
 The project directory also includes a formal scientific report located in the "results" folder. 
 
