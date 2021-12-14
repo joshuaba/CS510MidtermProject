@@ -23,7 +23,10 @@ NOTE: IT IS IMPORTANT TO DOWNLOAD AND INSTALL ALL OF THE PACKAGES LISTED IN THE 
 
  > BiocManager::install("apeglm") # Required for computing the log2-shrinkage in one of the R chunks
 
- Alternatively, uncomment the line 
+If the above does not work, then: 
+alternatively, uncomment the line 
  > # source("src/install_script.R", local = knitr::knit_global())
 
  in the first R code chunk, which will automatically install the BiocManager package manager and the required Bioinformatics packages required for the project. 
+
+I would first try to manually install BiocManager as described in the code snippets above, and then run the install script only if the manual installation does not work. 
